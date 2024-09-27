@@ -1,6 +1,6 @@
 # brainzuck
 
-brainzuck is an [Brainf*ck](https://en.wikipedia.org/wiki/Brainfuck) interpreter written in Zig 0.12.0!
+brainzuck is a [Brainf*ck](https://en.wikipedia.org/wiki/Brainfuck) interpreter written in Zig 0.12.0!
 Have fun!
 
 ## how to build
