@@ -1,13 +1,18 @@
 const std = @import("std");
 const allocator = std.heap.page_allocator;
 
+const ARRAY_SIZE: usize = 30_000;
+
+const BrainzuckError = error{ UnmatchingBrackets, WrongUsage, PtrOutOfBounds };
+
 pub fn main() !void {
     const args = try std.process.argsAlloc(allocator);
     defer allocator.free(args);
     const stdin = std.io.getStdIn().reader();
+    const stdout = std.io.getStdOut().writer();
     if (args.len != 2) {
-        std.debug.print("Usage: branzuck [filename]", .{});
-        std.process.exit(0);
+        try stdout.print("Usage: branzuck [filename]", .{});
+        return BrainzuckError.WrongUsage;
     }
 
     const file = try std.fs.cwd().openFile(args[1], .{});
@@ -17,7 +22,7 @@ pub fn main() !void {
     defer allocator.free(buffer);
     _ = try file.readAll(buffer);
 
-    var array: [30000]u8 = std.mem.zeroes([30000]u8);
+    var array: [ARRAY_SIZE]u8 = std.mem.zeroes([ARRAY_SIZE]u8);
 
     // pre process brackets
     var brackets_mapping = std.AutoHashMap(usize, usize).init(allocator);
@@ -30,8 +35,7 @@ pub fn main() !void {
         switch (byte) {
             '[' => try stack.append(i),
             ']' => if (stack.items.len == 0) {
-                std.debug.print("there is a ] without a matching [\n", .{});
-                std.process.exit(0);
+                return BrainzuckError.UnmatchingBrackets;
             } else {
                 const pos = stack.pop();
                 // maps [ to ]
@@ -43,36 +47,33 @@ pub fn main() !void {
         }
     }
 
-    // var it = brackets_mapping.keyIterator();
-    // while (it.next()) |k| {
-    //     const val = brackets_mapping.get(k.*).?;
-    //     std.debug.print("{d}: {d}\n", .{ k.*, val });
-    // }
-    // std.debug.print("----------------------------------\n", .{});
-
-    // I should check if ptr is > 0
     var ptr: usize = 0;
-    const input: []u8 = std.mem.zeroes([]u8);
     var idx: usize = 0;
     while (idx < buffer.len) : (idx += 1) {
         switch (buffer[idx]) {
-            '>' => ptr += 1,
-            '<' => ptr -= 1,
-            '+' => array[ptr] += 1,
+            '>' => {
+                if (ptr == ARRAY_SIZE - 1) {
+                    return BrainzuckError.PtrOutOfBounds;
+                }
+                ptr += 1;
+            },
+            '<' => {
+                if (ptr == 0) {
+                    return BrainzuckError.PtrOutOfBounds;
+                }
+                ptr -= 1;
+            },
+            '+' => array[ptr] +%= 1,
             '-' => {
-                array[ptr] -= 1;
+                array[ptr] -%= 1;
             },
             '.' => {
-                std.debug.print("{c}", .{array[ptr]});
+                try stdout.print("{c}", .{array[ptr]});
             },
             // I will deal with this later
             ',' => {
-                _ = try stdin.readUntilDelimiter(input, '\n');
-                // if (bytes_read > 1) {
-                //     std.debug.print("Input in brainf*ck should contain only one byte\n", .{});
-                //     std.process.exit(0);
-                // }
-                array[ptr] = input[0];
+                const byte = try stdin.readByte();
+                array[ptr] = byte;
             },
             '[' => {
                 if (array[ptr] == 0) {
@@ -85,7 +86,7 @@ pub fn main() !void {
                 }
             },
             '\n' => continue,
-            else => std.debug.print("\ndon't know this byte\n", .{}),
+            else => try stdout.print("\ndon't know this byte\n", .{}),
         }
     }
 }
