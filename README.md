@@ -5,10 +5,10 @@ Have fun!
 
 ## how to build
 
-# clone the repo
+### clone the repo
 
 `git clone https://github.com/daneelsan/brainfuckz.git`
 
-# compile with this command. This will create a binary with the name brainzuck
+### compile with this command. This will create a binary with the name brainzuck
 
 `zig build-exe main.zig -femit-bin=brainzuck`
