@@ -17,22 +17,55 @@ pub fn main() !void {
     defer allocator.free(buffer);
     _ = try file.readAll(buffer);
 
-    std.debug.print("{s}\n", .{buffer});
-
     var array: [30000]u8 = std.mem.zeroes([30000]u8);
 
-    // I should check if ptr is > 0
-    var ptr: u32 = 0;
-    const input: []u8 = std.mem.zeroes([]u8);
-    for (buffer) |byte| {
+    // pre process brackets
+    var brackets_mapping = std.AutoHashMap(usize, usize).init(allocator);
+    defer brackets_mapping.deinit();
+
+    var stack = std.ArrayList(usize).init(allocator);
+    defer stack.deinit();
+
+    for (buffer, 0..) |byte, i| {
         switch (byte) {
+            '[' => try stack.append(i),
+            ']' => if (stack.items.len == 0) {
+                std.debug.print("there is a ] without a matching [\n", .{});
+                std.process.exit(0);
+            } else {
+                const pos = stack.pop();
+                // maps [ to ]
+                try brackets_mapping.put(pos, i);
+                // maps ] to [
+                try brackets_mapping.put(i, pos);
+            },
+            else => continue,
+        }
+    }
+
+    // var it = brackets_mapping.keyIterator();
+    // while (it.next()) |k| {
+    //     const val = brackets_mapping.get(k.*).?;
+    //     std.debug.print("{d}: {d}\n", .{ k.*, val });
+    // }
+    // std.debug.print("----------------------------------\n", .{});
+
+    // I should check if ptr is > 0
+    var ptr: usize = 0;
+    const input: []u8 = std.mem.zeroes([]u8);
+    var idx: usize = 0;
+    while (idx < buffer.len) : (idx += 1) {
+        switch (buffer[idx]) {
             '>' => ptr += 1,
             '<' => ptr -= 1,
             '+' => array[ptr] += 1,
-            '-' => array[ptr] -= 1,
+            '-' => {
+                array[ptr] -= 1;
+            },
             '.' => {
                 std.debug.print("{c}", .{array[ptr]});
             },
+            // I will deal with this later
             ',' => {
                 _ = try stdin.readUntilDelimiter(input, '\n');
                 // if (bytes_read > 1) {
@@ -41,8 +74,17 @@ pub fn main() !void {
                 // }
                 array[ptr] = input[0];
             },
-            '[' => std.debug.print("\nopen bracket\n", .{}),
-            ']' => std.debug.print("\nclosing bracket\n", .{}),
+            '[' => {
+                if (array[ptr] == 0) {
+                    idx = brackets_mapping.get(idx).?;
+                }
+            },
+            ']' => {
+                if (array[ptr] != 0) {
+                    idx = brackets_mapping.get(idx).?;
+                }
+            },
+            '\n' => continue,
             else => std.debug.print("\ndon't know this byte\n", .{}),
         }
     }
