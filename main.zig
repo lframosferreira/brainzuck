@@ -18,6 +18,15 @@ pub fn main() !void {
     if (std.mem.eql(u8, args[1], "help")) {
         try stdout.print("Usage:\n\tto get help: brainzuck help\n\tto interpret a file: brainzuck [filename]\n\tto start the REPL: brainzuck REPL\n", .{});
         std.process.exit(1);
+    } else if (std.mem.eql(u8, args[1], "REPL")) {
+        while (true) {
+            try stdout.print("brainzuck> ", .{});
+            // last param is max bytes. change later
+            const line = try stdin.readUntilDelimiterAlloc(allocator, '\n', 3000);
+            defer allocator.free(line);
+            // eval(line)
+        }
+        // put eval() in a function and apply it here
     }
 
     const file = try std.fs.cwd().openFile(args[1], .{});
