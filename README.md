@@ -7,7 +7,7 @@ Have fun!
 
 ### clone the repo
 
-`git clone https://github.com/daneelsan/brainfuckz.git`
+`git clone https://github.com/lframosferreira/brainzuck.git`
 
 ### compile with this command. This will create a binary with the name brainzuck
 
