@@ -34,9 +34,9 @@ pub fn main() !void {
     // add file not existing error handling here
 
     const file_size = try file.getEndPos();
-    const buffer = try allocator.alloc(u8, file_size);
-    defer allocator.free(buffer);
-    _ = try file.readAll(buffer);
+    const instructions = try allocator.alloc(u8, file_size);
+    defer allocator.free(instructions);
+    _ = try file.readAll(instructions);
 
     var array: [ARRAY_SIZE]u8 = std.mem.zeroes([ARRAY_SIZE]u8);
 
@@ -47,7 +47,7 @@ pub fn main() !void {
     var stack = std.ArrayList(usize).init(allocator);
     defer stack.deinit();
 
-    for (buffer, 0..) |byte, i| {
+    for (instructions, 0..) |byte, i| {
         switch (byte) {
             '[' => try stack.append(i),
             ']' => if (stack.items.len == 0) {
@@ -64,9 +64,9 @@ pub fn main() !void {
     }
 
     var ptr: usize = 0;
-    var idx: usize = 0;
-    while (idx < buffer.len) : (idx += 1) {
-        switch (buffer[idx]) {
+    var instructions_ptr: usize = 0;
+    while (instructions_ptr < instructions.len) : (instructions_ptr += 1) {
+        switch (instructions[instructions_ptr]) {
             '>' => {
                 if (ptr == ARRAY_SIZE - 1) {
                     return BrainzuckError.PtrOutOfBounds;
@@ -86,19 +86,18 @@ pub fn main() !void {
             '.' => {
                 try stdout.print("{c}", .{array[ptr]});
             },
-            // I will deal with this later
             ',' => {
                 const byte = try stdin.readByte();
                 array[ptr] = byte;
             },
             '[' => {
                 if (array[ptr] == 0) {
-                    idx = brackets_mapping.get(idx).?;
+                    instructions_ptr = brackets_mapping.get(instructions_ptr).?;
                 }
             },
             ']' => {
                 if (array[ptr] != 0) {
-                    idx = brackets_mapping.get(idx).?;
+                    instructions_ptr = brackets_mapping.get(instructions_ptr).?;
                 }
             },
             '\n' => continue,
