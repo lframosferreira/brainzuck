@@ -11,12 +11,19 @@ pub fn main() !void {
     const stdin = std.io.getStdIn().reader();
     const stdout = std.io.getStdOut().writer();
     if (args.len != 2) {
-        try stdout.print("Usage: branzuck [filename]", .{});
+        try stdout.print("Wrong usage. For more information try brainzuck help\n", .{});
         return BrainzuckError.WrongUsage;
+    }
+
+    if (std.mem.eql(u8, args[1], "help")) {
+        try stdout.print("Usage:\n\tto get help: brainzuck help\n\tto interpret a file: brainzuck [filename]\n\tto start the REPL: brainzuck REPL\n", .{});
+        std.process.exit(1);
     }
 
     const file = try std.fs.cwd().openFile(args[1], .{});
     defer file.close();
+    // add file not existing error handling here
+
     const file_size = try file.getEndPos();
     const buffer = try allocator.alloc(u8, file_size);
     defer allocator.free(buffer);
