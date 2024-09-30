@@ -2,43 +2,15 @@ const std = @import("std");
 const allocator = std.heap.page_allocator;
 
 const ARRAY_SIZE: usize = 30_000;
+const MAX_BYTES_PER_REPL_LINE: usize = 30_000;
 
-const BrainzuckError = error{ UnmatchingBrackets, WrongUsage, PtrOutOfBounds };
+const BrainzuckError = error{ InvalidByteError, UnmatchingBrackets, WrongUsage, PtrOutOfBounds };
 
-pub fn main() !void {
-    const args = try std.process.argsAlloc(allocator);
-    defer allocator.free(args);
-    const stdin = std.io.getStdIn().reader();
-    const stdout = std.io.getStdOut().writer();
-    if (args.len != 2) {
-        try stdout.print("Wrong usage. For more information try brainzuck help\n", .{});
-        return BrainzuckError.WrongUsage;
-    }
+var array: [ARRAY_SIZE]u8 = std.mem.zeroes([ARRAY_SIZE]u8);
+const stdin = std.io.getStdIn().reader();
+const stdout = std.io.getStdOut().writer();
 
-    if (std.mem.eql(u8, args[1], "help")) {
-        try stdout.print("Usage:\n\tto get help: brainzuck help\n\tto interpret a file: brainzuck [filename]\n\tto start the REPL: brainzuck REPL\n", .{});
-        std.process.exit(1);
-    } else if (std.mem.eql(u8, args[1], "REPL")) {
-        while (true) {
-            try stdout.print("brainzuck> ", .{});
-            // last param is max bytes. change later
-            const line = try stdin.readUntilDelimiterAlloc(allocator, '\n', 3000);
-            defer allocator.free(line);
-            // eval(line)
-        }
-        // put eval() in a function and apply it here
-    }
-
-    const file = try std.fs.cwd().openFile(args[1], .{});
-    defer file.close();
-    // add file not existing error handling here
-
-    const file_size = try file.getEndPos();
-    const instructions = try allocator.alloc(u8, file_size);
-    defer allocator.free(instructions);
-    _ = try file.readAll(instructions);
-
-    var array: [ARRAY_SIZE]u8 = std.mem.zeroes([ARRAY_SIZE]u8);
+fn eval(instructions: []const u8) !void {
 
     // pre process brackets
     var brackets_mapping = std.AutoHashMap(usize, usize).init(allocator);
@@ -101,7 +73,40 @@ pub fn main() !void {
                 }
             },
             '\n' => continue,
-            else => try stdout.print("\ndon't know this byte\n", .{}),
+            else => {
+                try stdout.print("\ndon't know this byte\n", .{});
+                return BrainzuckError.InvalidByteError;
+            },
         }
     }
+}
+
+pub fn main() !void {
+    const args = try std.process.argsAlloc(allocator);
+    defer allocator.free(args);
+    if (args.len != 2) {
+        try stdout.print("Wrong usage. For more information try brainzuck help\n", .{});
+        return BrainzuckError.WrongUsage;
+    }
+
+    if (std.mem.eql(u8, args[1], "help")) {
+        try stdout.print("Usage:\n\tto get help: brainzuck help\n\tto interpret a file: brainzuck [filename]\n\tto start the REPL: brainzuck REPL\n", .{});
+        std.process.exit(1);
+    } else if (std.mem.eql(u8, args[1], "REPL")) {
+        while (true) {
+            try stdout.print("brainzuck> ", .{});
+            const line = try stdin.readUntilDelimiterAlloc(allocator, '\n', MAX_BYTES_PER_REPL_LINE);
+            defer allocator.free(line);
+            try eval(line);
+        }
+    }
+
+    const file = try std.fs.cwd().openFile(args[1], .{});
+    defer file.close();
+
+    const file_size = try file.getEndPos();
+    const instructions = try allocator.alloc(u8, file_size);
+    defer allocator.free(instructions);
+    _ = try file.readAll(instructions);
+    try eval(instructions);
 }

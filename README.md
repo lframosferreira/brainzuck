@@ -9,6 +9,6 @@ Have fun!
 
 `git clone https://github.com/lframosferreira/brainzuck.git`
 
-### compile with this command. This will create a binary with the name brainzuck
+### Compile with the following command. This will create a binary with the name brainzuck
 
 `zig build-exe main.zig -femit-bin=brainzuck`
