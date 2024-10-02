@@ -72,11 +72,7 @@ fn eval(instructions: []const u8) !void {
                     instructions_ptr = brackets_mapping.get(instructions_ptr).?;
                 }
             },
-            '\n' => continue,
-            else => {
-                try stdout.print("\ndon't know this byte\n", .{});
-                return BrainzuckError.InvalidByteError;
-            },
+            else => continue,
         }
     }
 }
